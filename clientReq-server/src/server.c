@@ -5,15 +5,27 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
+#include <string.h>
 
 #include "errExit.h"
 #include "request.h"
 #include "response.h"
 
+#define MAX_SERVICE 1400000000
+
 char *pathFifoServer = "/tmp/fifoServer";
 char *baseFifoClient = "/tmp/fifoClient.";
 
 int serverFIFO, serverFIFO_extra;
+
+char *services[] = {
+        "stampa", "salva", "invia"
+};
+
+unsigned long int keyStampa = 1;
+unsigned long int keySalva = MAX_SERVICE + 1;
+unsigned long int keyInvia = MAX_SERVICE+MAX_SERVICE + 1;
 
 void quit(int sig) {
 
@@ -32,11 +44,49 @@ void quit(int sig) {
     _exit(0);
 }
 
+void strlwr(char s[]) {
+    int c = 0;
+
+    while (s[c] != '\0') {
+        if (s[c] >= 'A' && s[c] <= 'Z') {
+            s[c] = s[c] + 32;
+        }
+        c++;
+    }
+}
+
+unsigned long int getKey(struct Request *request) {
+
+    unsigned long int myKey;
+
+    char myService[10];
+    strcpy(myService, request->service);
+    strlwr(myService);
+
+    if (strcmp(services[0], myService)==0) { //STAMPA
+        if (keyStampa==MAX_SERVICE)
+            keyStampa=1;
+        return keyStampa++;
+    } else if (strcmp(services[1], myService)==0) { //SALVA
+        if (keySalva==MAX_SERVICE*2)
+            keySalva=MAX_SERVICE+1;
+        return keySalva++;
+    } else if (strcmp(services[2], myService)==0) { //INVIA
+        if (keyInvia==MAX_SERVICE*3)
+            keyInvia=MAX_SERVICE*2+1;
+        return keyInvia++;
+    } else { // service error
+        return 0; //TODO in clientReq if the return value is 0, the service request wasn't successful
+    }
+
+    return myKey;
+}
+
 void sendResponse(struct Request *request) {
 
     // make the path of client's FIFO
     char pathFifoClient [100];
-    sprintf(pathFifoClient, "%s%d", baseFifoClient, request.pid);
+    sprintf(pathFifoClient, "%s%d", baseFifoClient, request->pid);
 
     printf("<Server> opening FIFO %s...\n", pathFifoClient);
     // Open the client's FIFO in write-only mode
@@ -48,8 +98,10 @@ void sendResponse(struct Request *request) {
 
     // Prepare the response for the client
     struct Response response;
-    response.key = getKey(request->userID, request->service); //getKey is a keyManger method
+    response.key = getKey(request);
     // TODO implement getKey()
+
+    // TODO write to sharedMemory (request->userID, response.key, time_t current)
 
     printf("<Server> sending a response\n");
     // Write the Response into the opened FIFO
@@ -66,6 +118,8 @@ void sendResponse(struct Request *request) {
 
 int main (int argc, char *argv[]) {
     printf("Hi, I'm Server program!\n");
+
+    // TODO fork for keyManager
 
     // set of signals
     sigset_t mySet;

@@ -1,7 +1,7 @@
-#ifndef _REQUEST_HH
-#define _REQUEST_HH
+#ifndef _RESPONSE_HH
+#define _RESPONSE_HH
 
-struct Request {
+struct Response {
     unsigned long int key;
 };
 
