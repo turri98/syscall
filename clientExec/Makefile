@@ -3,13 +3,13 @@ CFLAGS=-Wall -std=gnu99
 INCLUDES=-I./inc
 
 # list source code files for clientExc executable
-CLIENT_SRCS=src/clientExec.c
+CLIENT_SRCS=src/clientExec.c src/errExit.c
 # list source code files for salva executable
-SALVA_SRCS=src/salva.c
+SALVA_SRCS=src/salva.c src/errExit.c
 # list source code files for stampa executable
-STAMPA_SRCS=src/stampa.c
-# list source code files for inva executable
-INVIA_SRCS=src/invia.c
+STAMPA_SRCS=src/stampa.c src/errExit.c
+# list source code files for invia executable
+INVIA_SRCS=src/invia.c src/errExit.c
 
 ##------------------------------------------------------------------------------
 ## DO NOT TOUCH BELOW THIS LINE!
