@@ -12,10 +12,12 @@
 #include "request.h"
 #include "response.h"
 
-#define MAX_SERVICE 1400000000
+#define MAX_SERVICE_1 1400000000
+#define MAX_SERVICE_2 2800000000
+#define MAX_SERVICE_3 4200000000
 
-char *pathFifoServer = "/tmp/fifoServer";
-char *baseFifoClient = "/tmp/fifoClient.";
+char *pathFifoServer = "tmp/fifoServer";
+char *baseFifoClient = "tmp/fifoClient.";
 
 int serverFIFO, serverFIFO_extra;
 
@@ -24,8 +26,8 @@ char *services[] = {
 };
 
 unsigned long int keyStampa = 1;
-unsigned long int keySalva = MAX_SERVICE + 1;
-unsigned long int keyInvia = MAX_SERVICE+MAX_SERVICE + 1;
+unsigned long int keySalva = MAX_SERVICE_1 + 1;
+unsigned long int keyInvia = MAX_SERVICE_2 + 1;
 
 void quit(int sig) {
 
@@ -57,29 +59,27 @@ void strlwr(char s[]) {
 
 unsigned long int getKey(struct Request *request) {
 
-    unsigned long int myKey;
+    unsigned long int myKey=0;
 
     char myService[10];
     strcpy(myService, request->service);
     strlwr(myService);
 
     if (strcmp(services[0], myService)==0) { //STAMPA
-        if (keyStampa==MAX_SERVICE)
+        if (keyStampa==MAX_SERVICE_1)
             keyStampa=1;
         return keyStampa++;
     } else if (strcmp(services[1], myService)==0) { //SALVA
-        if (keySalva==MAX_SERVICE*2)
-            keySalva=MAX_SERVICE+1;
+        if (keySalva==MAX_SERVICE_2)
+            keySalva=MAX_SERVICE_1+1;
         return keySalva++;
     } else if (strcmp(services[2], myService)==0) { //INVIA
-        if (keyInvia==MAX_SERVICE*3)
-            keyInvia=MAX_SERVICE*2+1;
+        if (keyInvia==MAX_SERVICE_3)
+            keyInvia=MAX_SERVICE_2+1;
         return keyInvia++;
     } else { // service error
-        return 0; //TODO in clientReq if the return value is 0, the service request wasn't successful
+        return myKey; //TODO in clientReq if the return value is 0, the service request wasn't successful
     }
-
-    return myKey;
 }
 
 void sendResponse(struct Request *request) {
@@ -119,6 +119,14 @@ void sendResponse(struct Request *request) {
 int main (int argc, char *argv[]) {
     printf("Hi, I'm Server program!\n");
 
+    printf("keyStampa: %lu \n", keyStampa);
+    printf("keySalva: %lu \n", keySalva);
+    printf("keyInvia: %lu \n", keyInvia);
+
+    //for (int k=1;k<MAX_SERVICE; k++) {
+    //    printf("keySalva: %lu \n", keySalva+=1400000);
+    //}
+
     // TODO fork for keyManager
 
     // set of signals
@@ -128,11 +136,15 @@ int main (int argc, char *argv[]) {
     // remove SIGTERM from mySet
     sigdelset(&mySet, SIGTERM);
     // blocking all signals but SIGINT
-    sigprocmask(SIG_SETMASK, &mySet, NULL);
+    //sigprocmask(SIG_SETMASK, &mySet, NULL); //TODO remove the // at the start of the line for blocking all signals
 
     // set the function sigHandler as handler for the signal SIGINT
     if (signal(SIGTERM, quit) == SIG_ERR)
         errExit("change signal handler failed");
+
+    // set the function sigHandler as handler for the signal SIGINT
+    if (signal(SIGINT, quit) == SIG_ERR)
+        errExit("change signal handler failed"); //TODO remove this part before submitting
 
     printf("<Server> Making FIFO...\n");
     // make a FIFO with the following permissions:
