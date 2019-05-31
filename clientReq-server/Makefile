@@ -6,7 +6,7 @@ INCLUDES=-I./inc
 SERVER_SRCS=src/server.c src/errExit.c src/semaphore.c src/shared_memory.c
 
 # list source code files for client executable
-CLIENT_SRCS=src/clientReq.c
+CLIENT_SRCS=src/clientReq.c src/errExit.c
 
 ##------------------------------------------------------------------------------
 ## DO NOT TOUCH BELOW THIS LINE!

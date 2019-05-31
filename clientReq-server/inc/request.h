@@ -4,7 +4,7 @@
 struct Request {
     char userID[100];
     char service[10];
-    pid_t pid;
+    pid_t pid; //pid_t getpid(void);
 };
 
 #endif

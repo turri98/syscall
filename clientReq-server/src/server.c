@@ -14,6 +14,7 @@
 #include "response.h"
 #include "semaphore.h"
 #include "shared_memory.h"
+#include "constants.h"
 
 #define MAX_SERVICE_1 1400000000
 #define MAX_SERVICE_2 2800000000
@@ -31,6 +32,10 @@ char *services[] = {
 unsigned long int keyStampa = 1;
 unsigned long int keySalva = MAX_SERVICE_1 + 1;
 unsigned long int keyInvia = MAX_SERVICE_2 + 1;
+
+int shmid, shmNum, *num;
+struct Entry *entry;
+int semid;
 
 void quit(int sig) {
 
@@ -60,25 +65,42 @@ void strlwr(char s[]) {
     }
 }
 
+int create_sem_set(key_t semkey) {
+    // Create a semaphore set with 2 semaphores
+    int semid = semget(semkey, 2, IPC_CREAT | S_IRUSR | S_IWUSR);
+    if (semid == -1)
+        errExit("semget failed");
+
+    // Initialize the semaphore set
+    union semun arg;
+    unsigned short values[] = {1, 1};
+    arg.array = values;
+
+    if (semctl(semid, 0, SETALL, arg) == -1)
+        errExit("semctl SETALL failed");
+
+    return semid;
+}
+
 unsigned long int getKey(struct Request *request) {
 
-    unsigned long int myKey=0;
+    unsigned long int myKey = 0;
 
     char myService[10];
     strcpy(myService, request->service);
     strlwr(myService);
 
-    if (strcmp(services[0], myService)==0) { //STAMPA
-        if (keyStampa==MAX_SERVICE_1)
-            keyStampa=1;
+    if (strcmp(services[0], myService) == 0) { //STAMPA
+        if (keyStampa == MAX_SERVICE_1)
+            keyStampa = 1;
         return keyStampa++;
-    } else if (strcmp(services[1], myService)==0) { //SALVA
-        if (keySalva==MAX_SERVICE_2)
-            keySalva=MAX_SERVICE_1+1;
+    } else if (strcmp(services[1], myService) == 0) { //SALVA
+        if (keySalva == MAX_SERVICE_2)
+            keySalva = MAX_SERVICE_1 + 1;
         return keySalva++;
-    } else if (strcmp(services[2], myService)==0) { //INVIA
-        if (keyInvia==MAX_SERVICE_3)
-            keyInvia=MAX_SERVICE_2+1;
+    } else if (strcmp(services[2], myService) == 0) { //INVIA
+        if (keyInvia == MAX_SERVICE_3)
+            keyInvia = MAX_SERVICE_2 + 1;
         return keyInvia++;
     } else { // service error
         return myKey; //TODO in clientReq if the return value is 0, the service request wasn't successful
@@ -88,7 +110,7 @@ unsigned long int getKey(struct Request *request) {
 void sendResponse(struct Request *request) {
 
     // make the path of client's FIFO
-    char pathFifoClient [100];
+    char pathFifoClient[100];
     sprintf(pathFifoClient, "%s%d", baseFifoClient, request->pid);
 
     printf("<Server> opening FIFO %s...\n", pathFifoClient);
@@ -101,17 +123,25 @@ void sendResponse(struct Request *request) {
 
     // Prepare the response for the client
     struct Response response;
-    response.key = getKey(request);
-    // TODO implement getKey()
+    response.key = getKey(request); //0 if the request is malformed
 
-    // TODO write to sharedMemory (request->userID, response.key, time_t current)
+    // TODO write to sharedMemory if response.key!=0 (request->userID, response.key, time_t current)
+    if (response.key!=0) {
+
+        semOp(semid, SEM_SHM, -1);
+
+
+
+        semOp(semid, SEM_SHM, 1);
+
+    }
 
     printf("<Server> sending a response\n");
     // Write the Response into the opened FIFO
     if (write(clientFIFO, &response, sizeof(struct Response))
-            != sizeof(struct Response)) {
-        //printf("<Server> write failed");
-        errExit("write failed");
+        != sizeof(struct Response)) {
+        printf("<Server> write failed");
+        //errExit("write failed");
     }
 
     // Close the FIFO
@@ -119,35 +149,77 @@ void sendResponse(struct Request *request) {
         printf("<Server> close failed");
 }
 
-int main (int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     printf("Hi, I'm Server program!\n");
 
-    printf("keyStampa: %lu \n", keyStampa);
-    printf("keySalva: %lu \n", keySalva);
-    printf("keyInvia: %lu \n", keyInvia);
-
-    //for (int k=1;k<MAX_SERVICE; k++) {
-    //    printf("keySalva: %lu \n", keySalva+=1400000);
-    //}
-
-    // TODO fork for keyManager
-
     // set of signals
-    sigset_t mySet;
+    sigset_t mySetServer;
     // initialize mySet to contain all signals
-    sigfillset(&mySet);
+    sigfillset(&mySetServer);
     // remove SIGTERM from mySet
-    sigdelset(&mySet, SIGTERM);
+    sigdelset(&mySetServer, SIGTERM);
     // blocking all signals but SIGINT
-    //sigprocmask(SIG_SETMASK, &mySet, NULL); //TODO remove the // at the start of the line for blocking all signals
+    //sigprocmask(SIG_SETMASK, &mySetServer, NULL); //TODO remove the // at the start of the line for blocking all signals
 
-    // set the function sigHandler as handler for the signal SIGINT
+    // set the function sigHandler as handler for the signal SIGTERM
     if (signal(SIGTERM, quit) == SIG_ERR)
         errExit("change signal handler failed");
 
     // set the function sigHandler as handler for the signal SIGINT
     if (signal(SIGINT, quit) == SIG_ERR)
         errExit("change signal handler failed"); //TODO remove this part before submitting
+
+    //printf("keyStampa: %lu \n", keyStampa);
+    //printf("keySalva: %lu \n", keySalva);
+    //printf("keyInvia: %lu \n", keyInvia);
+
+    //for (int k=1;k<MAX_SERVICE; k++) {
+    //    printf("keySalva: %lu \n", keySalva+=1400000);
+    //}
+
+
+    // allocate a shared memory segment for the entries
+    printf("<Server> allocating a shared memory segment...\n");
+    shmid = alloc_shared_memory(SHARED_MEM_KEY, sizeof(struct Entry)*MAX_CLIENT); //TODO IPC_EXCL
+
+    // attach the shared memory segment
+    printf("<Server> attaching the shared memory segment...\n");
+    *entry = (struct Entry*)get_shared_memory(shmid, 0);
+
+    // allocate a shared memory segment for the number of entries
+    printf("<Server> allocating a shared memory segment...\n");
+    shmNum = alloc_shared_memory(SHARED_NUM_KEY, sizeof(int)); //TODO IPC_EXCL
+
+    // attach the shared memory segment
+    printf("<Server> attaching the shared memory segment...\n");
+    *num = (int *)get_shared_memory(shmNum, 0);
+
+    *num=0;
+
+    // create a semaphore set
+    printf("<Server> creating a semaphore set...\n");
+    semid = create_sem_set(SEMAPHORE_KEY);
+
+
+    pid_t keyManager = fork();
+
+    if (keyManager == 0) {
+        //process keyManager
+
+        printf("<Server> starting keyManager...");
+
+        while(1) {
+
+            sleep(30);
+            semOp(semid, SEM_SHM, -1);
+            //TODO del entries
+            semOp(semid, SEM_SHM, 1);
+
+        }
+
+    }
+
+    //process server
 
     printf("<Server> Making FIFO...\n");
     // make a FIFO with the following permissions:

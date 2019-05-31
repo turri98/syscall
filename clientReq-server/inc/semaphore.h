@@ -2,7 +2,7 @@
 #define _SEMAPHORE_HH
 
 // definition of the union semun
-union semun {
+union semunion {
     int val;
     struct semid_ds * buf;
     unsigned short * array;

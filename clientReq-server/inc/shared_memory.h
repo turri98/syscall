@@ -4,9 +4,10 @@
 #include <stdlib.h>
 
 // the Request structure defines a request sent by a client
-struct Request {
-    char pathname[250];
-    key_t shmKey;
+struct Entry {
+    char userID[100];
+    unsigned long int key;
+    time_t timeStart;
 };
 
 // The alloc_shared_memory method creates, if it does not exist, a shared
