@@ -34,7 +34,7 @@ unsigned long int keySalva = MAX_SERVICE_1 + 1;
 unsigned long int keyInvia = MAX_SERVICE_2 + 1;
 
 int shmid, shmNum, *num;
-struct Entry *entry;
+struct Entry *shm_entry;
 int semid;
 
 void quit(int sig) {
@@ -123,6 +123,7 @@ void sendResponse(struct Request *request) {
 
     // Prepare the response for the client
     struct Response response;
+    struct Entry myEntry;
     response.key = getKey(request); //0 if the request is malformed
 
     // TODO write to sharedMemory if response.key!=0 (request->userID, response.key, time_t current)
@@ -130,23 +131,36 @@ void sendResponse(struct Request *request) {
 
         semOp(semid, SEM_SHM, -1);
 
+        if ((*num)+1>=MAX_CLIENT) {
+            //shared memory full
 
+        } else {
+
+            strcpy(myEntry.user, request.userID);
+            myEntry.key = response.key;
+            myEntry.timeStart = time(NULL);
+
+            addEntry(shm_entry, myEntry, num); //TODO implement addEntry
+
+            (*num)++;
+
+        }
 
         semOp(semid, SEM_SHM, 1);
 
     }
 
-    printf("<Server> sending a response\n");
+    printf("<KeyManager> sending a response\n");
     // Write the Response into the opened FIFO
     if (write(clientFIFO, &response, sizeof(struct Response))
         != sizeof(struct Response)) {
-        printf("<Server> write failed");
+        printf("<KeyManager> write failed");
         //errExit("write failed");
     }
 
     // Close the FIFO
     if (close(clientFIFO) != 0)
-        printf("<Server> close failed");
+        printf("<KeyManager> close failed");
 }
 
 int main(int argc, char *argv[]) {
