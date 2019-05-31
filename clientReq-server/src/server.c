@@ -136,11 +136,11 @@ void sendResponse(struct Request *request) {
 
         } else {
 
-            strcpy(myEntry.user, request.userID);
+            strcpy(myEntry.userID, request->userID);
             myEntry.key = response.key;
             myEntry.timeStart = time(NULL);
 
-            addEntry(shm_entry, myEntry, num); //TODO implement addEntry
+            //addEntry(shm_entry, myEntry, num); //TODO implement addEntry
 
             (*num)++;
 
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
 
     // attach the shared memory segment
     printf("<Server> attaching the shared memory segment...\n");
-    *entry = (struct Entry*)get_shared_memory(shmid, 0);
+    shm_entry = (struct Entry*)get_shared_memory(shmid, 0);
 
     // allocate a shared memory segment for the number of entries
     printf("<Server> allocating a shared memory segment...\n");
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
 
     // attach the shared memory segment
     printf("<Server> attaching the shared memory segment...\n");
-    *num = (int *)get_shared_memory(shmNum, 0);
+    num = (int *)get_shared_memory(shmNum, 0);
 
     *num=0;
 
@@ -220,7 +220,7 @@ int main(int argc, char *argv[]) {
     if (keyManager == 0) {
         //process keyManager
 
-        printf("<Server> starting keyManager...");
+        printf("<Server> starting keyManager with PID %d ...", getpid());
 
         while(1) {
 
