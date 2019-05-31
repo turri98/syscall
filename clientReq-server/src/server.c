@@ -7,10 +7,13 @@
 #include <signal.h>
 #include <time.h>
 #include <string.h>
+#include <sys/shm.h>
 
 #include "errExit.h"
 #include "request.h"
 #include "response.h"
+#include "semaphore.h"
+#include "shared_memory.h"
 
 #define MAX_SERVICE_1 1400000000
 #define MAX_SERVICE_2 2800000000

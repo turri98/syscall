@@ -28,10 +28,10 @@ int main (int argc, char *argv[]) {
         // check if write completed successfully
         if (write(fd, argv[i], strlen(argv[i])) != strlen(argv[i]) )
             errExit("write failed");
-        if (write(fd, " ", strlen(" ")) != strlen(" ") )
+        if (write(fd, " ", strlen(" ")*sizeof(char)) != strlen(" ")*sizeof(char) )
             errExit("write failed");
     }
-    if (write(fd, "\n", strlen("\n")) != strlen("\n") )
+    if (write(fd, "\n", strlen("\n")*sizeof(char)) != strlen("\n")*sizeof(char) )
         errExit("write failed");
 
     // close file descriptor
