@@ -9,6 +9,13 @@
 #include <string.h>
 
 #include "errExit.h"
+#include "constants.h"
+#include "semaphore.h"
+#include "shared_memory.h"
+
+extern char *path2ServerFIFO;
+extern char *baseClientFIFO;
+extern char *services[];
 
 int main (int argc, char *argv[]) {
     printf("Hi, I'm ClientExec program!\n");

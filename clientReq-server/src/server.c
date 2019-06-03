@@ -20,20 +20,17 @@
 #define MAX_SERVICE_2 2800000000
 #define MAX_SERVICE_3 4200000000
 
-char *pathFifoServer = "tmp/fifoServer";
-char *baseFifoClient = "tmp/fifoClient.";
+extern char *pathFifoServer;
+extern char *baseFifoClient;
+extern char *services[];
 
 int serverFIFO, serverFIFO_extra;
-
-char *services[] = {
-        "stampa", "salva", "invia"
-};
 
 unsigned long int keyStampa = 1;
 unsigned long int keySalva = MAX_SERVICE_1 + 1;
 unsigned long int keyInvia = MAX_SERVICE_2 + 1;
 
-int shmid, shmNum, *num;
+int shmid, shmNum, *num; // *num contatore dei client = 0 /shmid  file system shared mem /shmNum numero di segmenti attaccati
 struct Entry *shm_entry;
 int semid;
 
@@ -65,6 +62,34 @@ void strlwr(char s[]) {
     }
 }
 
+void addEntry(struct Entry myEntry) {
+    strcpy(shm_entry[*num].userID, myEntry.userID);
+    shm_entry[*num].key = myEntry.key;
+    shm_entry[*num].timeStart = myEntry.timeStart;
+}
+void swap(int x, int y) {
+    struct Entry tmp = *(shm_entry + x);
+    *(shm_entry + x) = *(shm_entry + y);
+    *(shm_entry + y) = tmp;
+}
+
+void delEntry() {
+    time_t now = time(NULL);
+    printf("\nkeyManager cleaning");
+    fflush(stdout);
+    for(int i=0; i<*num; i++){
+        if(now - shm_entry[i].timeStart >= TTL) {
+            //swapping current entry with the last one
+
+            swap(i, *num);
+            //last entry is not considered anymore
+            (*num)--;
+            //restart from current position in order to check if the swapped entry is valid
+            i--;
+        }
+    }
+}
+
 int create_sem_set(key_t semkey) {
     // Create a semaphore set with 2 semaphores
     int semid = semget(semkey, 2, IPC_CREAT | S_IRUSR | S_IWUSR);
@@ -72,8 +97,8 @@ int create_sem_set(key_t semkey) {
         errExit("semget failed");
 
     // Initialize the semaphore set
-    union semun arg;
     unsigned short values[] = {1, 1};
+    union semun arg;
     arg.array = values;
 
     if (semctl(semid, 0, SETALL, arg) == -1)
@@ -133,14 +158,14 @@ void sendResponse(struct Request *request) {
 
         if ((*num)+1>=MAX_CLIENT) {
             //shared memory full
-
+            //TODO when shared memory full
         } else {
 
             strcpy(myEntry.userID, request->userID);
             myEntry.key = response.key;
             myEntry.timeStart = time(NULL);
 
-            //addEntry(shm_entry, myEntry, num); //TODO implement addEntry
+            addEntry(myEntry);
 
             (*num)++;
 

@@ -10,8 +10,6 @@
 #define SEM_SHM 0
 #define SEM_NUM 1
 
-#define TTL 300
-
 char *pathFifoServer = "tmp/fifoServer";
 char *baseFifoClient = "tmp/fifoClient.";
 char *services[] = {

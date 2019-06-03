@@ -10,17 +10,11 @@
 #include "request.h"
 #include "response.h"
 #include "errExit.h"
-//#include "constants.h"
+#include "constants.h"
 
-//extern char *path2ServerFIFO ;
-//extern char *baseClientFIFO;
-//extern char *services[];
-
-char *pathFifoServer = "tmp/fifoServer";
-char *baseFifoClient = "tmp/fifoClient.";
-char *services[] = {
-        "stampa", "salva", "invia"
-};
+extern char *path2ServerFIFO;
+extern char *baseClientFIFO;
+extern char *services[];
 
 void helloWorld() {
     printf("Hi, I'm ClientReq program!\n");
