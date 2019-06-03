@@ -10,6 +10,10 @@
 #define SEM_SHM 0
 #define SEM_NUM 1
 
+#define MAX_SERVICE_1 1400000000
+#define MAX_SERVICE_2 2800000000
+#define MAX_SERVICE_3 4200000000
+
 char *pathFifoServer = "tmp/fifoServer";
 char *baseFifoClient = "tmp/fifoClient.";
 char *services[] = {

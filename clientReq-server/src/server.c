@@ -16,10 +16,6 @@
 #include "shared_memory.h"
 #include "constants.h"
 
-#define MAX_SERVICE_1 1400000000
-#define MAX_SERVICE_2 2800000000
-#define MAX_SERVICE_3 4200000000
-
 extern char *pathFifoServer;
 extern char *baseFifoClient;
 extern char *services[];
