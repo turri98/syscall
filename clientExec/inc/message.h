@@ -1,6 +1,6 @@
 #ifndef SYSTEM_CALL_MESSAGE_H
 #define SYSTEM_CALL_MESSAGE_H
-struct message{
+struct message_t {
     long mtype;
     char message[2048];
 

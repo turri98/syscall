@@ -1,5 +1,11 @@
-#include "../inc/errExit.h"
-#include "../inc/shared_memory.h"
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "errExit.h"
+#include "shared_memory.h"
 
  int alloc_shared_memory(key_t shmKey, size_t size) {
     // get, or create, a shared memory segment
