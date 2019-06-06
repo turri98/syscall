@@ -33,6 +33,7 @@ struct Entry *shm_entry;
 int semid;
 
 pid_t keyManager;
+pid_t server;
 
 void printSHM() {
     int i;
@@ -42,9 +43,8 @@ void printSHM() {
 
 }
 
-
 void quit(int sig) {
-    if (keyManager>0) {
+    if (getpid()==server) {
         //send SIGTERM to keyManager
         printf("<Server> killing keyManager...\n");
         if (kill(keyManager, SIGTERM) == -1)
@@ -233,6 +233,7 @@ void sendResponse(struct Request *request) {
 
 int main(int argc, char *argv[]) {
     printf("Hi, I'm Server program!\n");
+    server=getpid();
 
     // set of signals
     sigset_t mySetServer;
