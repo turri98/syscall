@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/sem.h>
 #include <sys/types.h>
+#include <string.h>
 
 #include "errExit.h"
 #include "constants.h"
@@ -18,6 +19,10 @@
 
 extern char *services[];
 extern int numService;
+
+void printEntry(char s[], struct Entry k) {
+    printf("\n %s: %s, %lu, %ld", s, k.userID, k.key, k.timeStart);
+}
 
 char *getService(unsigned long int myKey) {
     if (myKey>=1 && myKey<MAX_SERVICE_1) {
@@ -65,10 +70,15 @@ int search(struct Entry *shmStart, int *len, char *uid, unsigned long int myKey)
 }
 
 void delEntry(struct Entry *shmStart, int *len, int n) {
-    struct Entry tmp = *(shmStart + n);
-    *(shmStart + n) = *(shmStart + *len);
-    *(shmStart + *len) = tmp;
+    struct Entry tmp = shmStart[n];
+    //printEntry("tmp", tmp);
+    shmStart[n] = shmStart[*len-1];
+    //printEntry("n", shmStart[n]);
+    shmStart[*len-1] = tmp;
+    //printEntry("len", shmStart[*len]);
+    //printf("len: %d", *len);
     (*len)--;
+    //printf("len: %d", *len);
 }
 
 int main (int argc, char *argv[]) {
@@ -106,7 +116,7 @@ int main (int argc, char *argv[]) {
     //before searching into the server, tries to get the semaphore to access
     semOp(semid, 0, -1);
 
-    printf("<clientExec> printing shm before...\n");
+    printf("\n<clientExec> printing shm before...\n");
     int i;
     for (i=0;i<*num;i++) {
         printf("\n %d) userID: %s, key: %lu, timeStart: %d\n", i, shm_entry[i].userID, shm_entry[i].key, (int)shm_entry[i].timeStart);
@@ -119,7 +129,7 @@ int main (int argc, char *argv[]) {
         delEntry(shm_entry, num, entry);
     }
 
-    printf("<clientExec> printing shm after...\n");
+    printf("\n<clientExec> printing shm after...\n");
     for (i=0;i<*num;i++) {
         printf("\n %d) userID: %s, key: %lu, timeStart: %d\n", i, shm_entry[i].userID, shm_entry[i].key, (int)shm_entry[i].timeStart);
     }
@@ -152,35 +162,37 @@ int main (int argc, char *argv[]) {
             printf("\nSoon starting service: %s ... \n\n", getService(temp_key));
             //create the argument vector for the exec call
 
-            printf("\ndebug 01\n");
+            //printf("\ndebug 01\n");
             char **argVec;
             int i;
-            printf("\ndebug 01\n");
+            //printf("\ndebug 01\n");
             argVec = (char **) malloc(sizeof(char *)*(argc-1));
             for (i=3;i<argc;i++) {
-                printf("\ndebug %d\n", i+3);
+                //printf("\ndebug %d\n", i+3);
                 argVec[i-2] = argv[i];
             }
-            printf("\ndebug 100\n");
+            //printf("\ndebug 100\n");
             argVec[argc-1]=(char *) NULL;
-            printf("\ndebug 101\n");
+            //printf("\ndebug 101\n");
 
 
             argVec[0] = (char *) malloc(sizeof(char)*100);
             strcpy(argVec[0], "./");
             strcat(argVec[0], getService(temp_key));
 
-            printf("\n\nargVec %s \n\n", argVec[0]);
+            //printf("\n\nargVec %s \n\n", argVec[0]);
 
-            printf("\ndebug 102\n");
+            //printf("\ndebug 102\n");
 
-            printf("\nPrinting argVec\n");
+            //printf("\nPrinting argVec\n");
 
+            printf("\ndebug\n");
             for (i=0;i<argc-1;i++) {
-                printf("\ndebug %d\n", i+103);
                 printf("%s ", argVec[i]);
             }
-            argVec[i]=NULL;
+
+
+            argVec[argc-1]=NULL;
 
 
             if (strcmp(getService(temp_key), services[0])==0) { //STAMPA

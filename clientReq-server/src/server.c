@@ -112,14 +112,14 @@ void swap(int x, int y) {
 
 void delEntry() {
     time_t now = time(NULL);
-    printf("<KeyManager> starting to delete old entries...\n");
+    printf("\n<KeyManager> starting to delete old entries...\n");
     fflush(stdout);
 
     for(int i=0; i<*num; i++) {
         if(now - shm_entry[i].timeStart >= TTL) {
             //swapping current entry with the last one
 
-            swap(i, *num);
+            swap(i, *num-1);
             //last entry is not considered anymore
             (*num)--;
             //restart from current position in order to check if the swapped entry is valid
@@ -211,8 +211,11 @@ void sendResponse(struct Request *request) {
 
 
         //DEBUG
-        printf("<Server> printing current state of shared memory... \n\n");
-        printSHM();
+
+        printf("## %s, %lu, %ld\n",myEntry.userID, myEntry.key, myEntry.timeStart);
+
+        //printf("<Server> printing current state of shared memory... \n\n");
+        //printSHM();
 
         semOp(semid, SEM_SHM, 1);
 
@@ -301,12 +304,17 @@ int main(int argc, char *argv[]) {
 
         while(1) {
 
-            sleep(30);
+            sleep(10); //30
             semOp(semid, SEM_SHM, -1);
-            printSHM();
+
+            //printSHM();
             delEntry();
-            printf("<keyManager> deleted entries...\n");
+            printf("##################################\n<keyManager> deleting entries at time %d...", (int)time(NULL));
+            fflush(stdout);
+            //printf("\n\n<keyManager> printing shared memory\n");
             printSHM();
+            printf("\n##################################\n\n");
+            fflush(stdout);
             semOp(semid, SEM_SHM, 1);
 
         }
