@@ -37,14 +37,15 @@ pid_t server;
 
 void printSHM() {
     int i;
-    for (i=0;i<*num;i++) {
-        printf("\n %d) userID: %s, key: %lu, timeStart: %d\n", i, shm_entry[i].userID, shm_entry[i].key, (int)shm_entry[i].timeStart);
+    for (i = 0; i < *num; i++) {
+        printf("\n %d) userID: %s, key: %lu, timeStart: %d\n", i, shm_entry[i].userID, shm_entry[i].key,
+               (int) shm_entry[i].timeStart);
     }
 
 }
 
 void quit(int sig) {
-    if (getpid()==server) {
+    if (getpid() == server) {
         //send SIGTERM to keyManager
         printf("<Server> killing keyManager...\n");
         if (kill(keyManager, SIGTERM) == -1)
@@ -78,7 +79,7 @@ void quit(int sig) {
             errExit("semctl IPC_RMID failed");
 
         fflush(stdout);
-        while(wait(NULL) == -1);
+        while (wait(NULL) == -1);
         printf("<Server> turning off...\n");
         // terminate the process
         exit(0);
@@ -104,6 +105,7 @@ void addEntry(struct Entry myEntry) {
     shm_entry[*num].key = myEntry.key;
     shm_entry[*num].timeStart = myEntry.timeStart;
 }
+
 void swap(int x, int y) {
     struct Entry tmp = *(shm_entry + x);
     *(shm_entry + x) = *(shm_entry + y);
@@ -115,11 +117,11 @@ void delEntry() {
     printf("\n<KeyManager> starting to delete old entries...\n\n");
     fflush(stdout);
 
-    for(int i=0; i<*num; i++) {
-        if(now - shm_entry[i].timeStart >= TTL) {
+    for (int i = 0; i < *num; i++) {
+        if (now - shm_entry[i].timeStart >= TTL) {
             //swapping current entry with the last one
 
-            swap(i, *num-1);
+            swap(i, *num - 1);
             //last entry is not considered anymore
             (*num)--;
             //restart from current position in order to check if the swapped entry is valid
@@ -187,21 +189,23 @@ void sendResponse(struct Request *request) {
     // Prepare the response for the client
     struct Response response;
     struct Entry myEntry;
-    response.key = getKey(request); //0 if the request is malformed
 
     // write to sharedMemory if response.key!=0 (request->userID, response.key, time_t current)
-    if (response.key!=0) {
+    //if (response.key!=0) {
 
-        semOp(semid, SEM_SHM, -1);
+    semOp(semid, SEM_SHM, -1);
 
-        if ((*num)+1>=MAX_CLIENT) {
-            //shared memory full
+    if ((*num) >= MAX_CLIENT) {
 
-            printf("\nThe shared memory is full, please wait...");
-            fflush(stdout);
+        //shared memory full
+        printf("\nThe shared memory is full, please wait...\n\n");
+        fflush(stdout);
+        response.key = 0;
 
-        } else {
+    } else {
 
+        response.key = getKey(request); //0 if the request is malformed
+        if (response.key != 0) {
             strcpy(myEntry.userID, request->userID);
             myEntry.key = response.key;
             myEntry.timeStart = time(NULL);
@@ -209,19 +213,19 @@ void sendResponse(struct Request *request) {
             addEntry(myEntry);
 
             (*num)++;
-
         }
 
-
-        //DEBUG
-        //printf("## %s, %lu, %ld\n",myEntry.userID, myEntry.key, myEntry.timeStart);
-
-        //printf("<Server> printing current state of shared memory... \n\n");
-        //printSHM();
-
-        semOp(semid, SEM_SHM, 1);
-
     }
+
+
+    //DEBUG
+    //printf("## %s, %lu, %ld\n",myEntry.userID, myEntry.key, myEntry.timeStart);
+
+    //printf("<Server> printing current state of shared memory... \n\n");
+    //printSHM();
+
+    semOp(semid, SEM_SHM, 1);
+
 
     printf("<KeyManager> sending a response\n");
     // Write the Response into the opened FIFO
@@ -237,7 +241,7 @@ void sendResponse(struct Request *request) {
 
 int main(int argc, char *argv[]) {
     printf("Hi, I'm Server program!\n");
-    server=getpid();
+    server = getpid();
 
     // set of signals
     sigset_t mySetServer;
@@ -269,27 +273,27 @@ int main(int argc, char *argv[]) {
     // allocate a shared memory segment for the entries
     printf("<Server> allocating a shared memory segment...\n");
     //shmid = alloc_shared_memory(SHARED_MEM_KEY, sizeof(struct Entry)*MAX_CLIENT);
-    shmid = shmget(SHARED_MEM_KEY, sizeof(struct Entry)*MAX_CLIENT, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    shmid = shmget(SHARED_MEM_KEY, sizeof(struct Entry) * MAX_CLIENT, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
     if (shmid == -1)
         errExit("server shmget1 failed");
 
     // attach the shared memory segment
     printf("<Server> attaching the shared memory segment...\n");
-    shm_entry = (struct Entry*)get_shared_memory(shmid, 0);
+    shm_entry = (struct Entry *) get_shared_memory(shmid, 0);
 
     // allocate a shared memory segment for the number of entries
     printf("<Server> allocating a shared memory segment...\n");
     //shmNum = alloc_shared_memory(SHARED_NUM_KEY, sizeof(int)), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR;
-    shmNum = shmget(SHARED_NUM_KEY, sizeof(struct Entry)*MAX_CLIENT, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    shmNum = shmget(SHARED_NUM_KEY, sizeof(struct Entry) * MAX_CLIENT, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
     if (shmid == -1)
         errExit("server shmget2 failed");
 
 
     // attach the shared memory segment
     printf("<Server> attaching the shared memory segment...\n");
-    num = (int *)get_shared_memory(shmNum, 0);
+    num = (int *) get_shared_memory(shmNum, 0);
 
-    *num=0;
+    *num = 0;
 
     // create a semaphore set
     printf("<Server> creating a semaphore set...\n");
@@ -303,14 +307,14 @@ int main(int argc, char *argv[]) {
 
         printf("<Server> starting keyManager with PID %d ...\n", getpid());
 
-        while(1) {
+        while (1) {
 
             sleep(TIME_TO_SLEEP);
             semOp(semid, SEM_SHM, -1);
 
             //printSHM();
             delEntry();
-            printf("##################################\n<keyManager> deleting entries at time %d...", (int)time(NULL));
+            printf("##################################\n<keyManager> deleting entries at time %d...", (int) time(NULL));
             fflush(stdout);
             //printf("\n\n<keyManager> printing shared memory\n");
             printSHM();

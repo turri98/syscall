@@ -71,7 +71,7 @@ int main (int argc, char *argv[]) {
             printf("Key:\t%lu\n", response.key);
             printf("UserId:\t%s\n", request.userID);
         } else {
-            printf("<Client> this service does not exist\n");
+            printf("<Client> this service does not exist or the shared memory is full\n");
         }
     }
 
