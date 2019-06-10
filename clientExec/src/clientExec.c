@@ -43,7 +43,7 @@ int search(struct Entry *shmStart, int *len, char *uid, unsigned long int myKey)
 
     for (i=0; i<*len; i++) {
         //entry found
-        printf("\n<clientExec> comparing %s with %s, %lu with %lu\n", shmStart[i].userID, uid, shmStart[i].key, myKey);
+        //printf("\n<clientExec> comparing %s with %s, %lu with %lu\n", shmStart[i].userID, uid, shmStart[i].key, myKey);
         if (strcmp(shmStart[i].userID, uid)==0 && shmStart[i].key==myKey) {
             return i;
         }
@@ -82,7 +82,7 @@ void delEntry(struct Entry *shmStart, int *len, int n) {
 }
 
 int main (int argc, char *argv[]) {
-    printf("Hi, I'm ClientExec program!\n");
+    printf("Hi, I'm ClientExec program!\n\n");
     if (argc < 3) {
         printf("Usage: %s user_identifier server_key ...\n", *argv);
         return 1;
@@ -129,10 +129,10 @@ int main (int argc, char *argv[]) {
         delEntry(shm_entry, num, entry);
     }
 
-    printf("\n<clientExec> printing shm after...\n");
-    for (i=0;i<*num;i++) {
-        printf("\n %d) userID: %s, key: %lu, timeStart: %d\n", i, shm_entry[i].userID, shm_entry[i].key, (int)shm_entry[i].timeStart);
-    }
+    //printf("\n<clientExec> printing shm after...\n");
+    //for (i=0;i<*num;i++) {
+    //    printf("\n %d) userID: %s, key: %lu, timeStart: %d\n", i, shm_entry[i].userID, shm_entry[i].key, (int)shm_entry[i].timeStart);
+    //}
 
     semOp(semid, 0, 1);
 
@@ -171,29 +171,18 @@ int main (int argc, char *argv[]) {
                 //printf("\ndebug %d\n", i+3);
                 argVec[i-2] = argv[i];
             }
-            //printf("\ndebug 100\n");
-            argVec[argc-1]=(char *) NULL;
-            //printf("\ndebug 101\n");
-
 
             argVec[0] = (char *) malloc(sizeof(char)*100);
             strcpy(argVec[0], "./");
             strcat(argVec[0], getService(temp_key));
-
-            //printf("\n\nargVec %s \n\n", argVec[0]);
-
-            //printf("\ndebug 102\n");
+            //argVec[argc-1]=(char *) NULL; //TODO check if it is ok
+            argVec[argc-2]=NULL;
 
             //printf("\nPrinting argVec\n");
-
-            printf("\ndebug\n");
-            for (i=0;i<argc-1;i++) {
-                printf("%s ", argVec[i]);
-            }
-
-
-            argVec[argc-1]=NULL;
-
+            //for (i=0;i<argc-2;i++) {
+            //    printf("%s ", argVec[i]);
+            //}
+            //fflush(stdout);
 
             if (strcmp(getService(temp_key), services[0])==0) { //STAMPA
 

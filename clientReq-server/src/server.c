@@ -77,7 +77,7 @@ void quit(int sig) {
         if (semctl(semid, 0 /*ignored*/, IPC_RMID, NULL) == -1)
             errExit("semctl IPC_RMID failed");
 
-
+        fflush(stdout);
         while(wait(NULL) == -1);
         printf("<Server> turning off...\n");
         // terminate the process
@@ -112,7 +112,7 @@ void swap(int x, int y) {
 
 void delEntry() {
     time_t now = time(NULL);
-    printf("\n<KeyManager> starting to delete old entries...\n");
+    printf("\n<KeyManager> starting to delete old entries...\n\n");
     fflush(stdout);
 
     for(int i=0; i<*num; i++) {
@@ -196,7 +196,10 @@ void sendResponse(struct Request *request) {
 
         if ((*num)+1>=MAX_CLIENT) {
             //shared memory full
-            //TODO when shared memory full
+
+            printf("\nThe shared memory is full, please wait...");
+            fflush(stdout);
+
         } else {
 
             strcpy(myEntry.userID, request->userID);
@@ -211,8 +214,7 @@ void sendResponse(struct Request *request) {
 
 
         //DEBUG
-
-        printf("## %s, %lu, %ld\n",myEntry.userID, myEntry.key, myEntry.timeStart);
+        //printf("## %s, %lu, %ld\n",myEntry.userID, myEntry.key, myEntry.timeStart);
 
         //printf("<Server> printing current state of shared memory... \n\n");
         //printSHM();
@@ -226,7 +228,6 @@ void sendResponse(struct Request *request) {
     if (write(clientFIFO, &response, sizeof(struct Response))
         != sizeof(struct Response)) {
         printf("<KeyManager> write failed");
-        //errExit("write failed");
     }
 
     // Close the FIFO
@@ -244,8 +245,8 @@ int main(int argc, char *argv[]) {
     sigfillset(&mySetServer);
     // remove SIGTERM from mySet
     sigdelset(&mySetServer, SIGTERM);
-    sigdelset(&mySetServer, SIGINT);
-    // blocking all signals but SIGTERM & SIGINT //TODO remove SIGINT
+    //sigdelset(&mySetServer, SIGINT);
+    // blocking all signals but SIGTERM
     sigprocmask(SIG_SETMASK, &mySetServer, NULL);
 
     // set the function sigHandler as handler for the signal SIGTERM
@@ -253,8 +254,8 @@ int main(int argc, char *argv[]) {
         errExit("change signal handler failed");
 
     // set the function sigHandler as handler for the signal SIGINT
-    if (signal(SIGINT, quit) == SIG_ERR)
-        errExit("change signal handler failed"); //TODO remove this part before submitting
+    //if (signal(SIGINT, quit) == SIG_ERR)
+    //    errExit("change signal handler failed");
 
     //printf("keyStampa: %lu \n", keyStampa);
     //printf("keySalva: %lu \n", keySalva);
@@ -304,7 +305,7 @@ int main(int argc, char *argv[]) {
 
         while(1) {
 
-            sleep(10); //30
+            sleep(TIME_TO_SLEEP);
             semOp(semid, SEM_SHM, -1);
 
             //printSHM();
@@ -315,6 +316,7 @@ int main(int argc, char *argv[]) {
             printSHM();
             printf("\n##################################\n\n");
             fflush(stdout);
+
             semOp(semid, SEM_SHM, 1);
 
         }

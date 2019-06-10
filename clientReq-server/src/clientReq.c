@@ -16,16 +16,12 @@ extern char *path2ServerFIFO;
 extern char *baseClientFIFO;
 extern char *services[];
 
-void helloWorld() {
-    printf("Hi, I'm ClientReq program!\n");
-    printf("Ecco i servizi di sistema:\n -stampa\n -salva\n -invia\n");
-}
-
 int main (int argc, char *argv[]) {
 
     struct Request request;
 
-    helloWorld();
+    printf("Hi, I'm ClientReq program!\n");
+    printf("Ecco i servizi di sistema:\n -stampa\n -salva\n -invia\n");
 
     printf(" Per favore inserisci il tuo nome:\n");
     scanf("%s", request.userID);

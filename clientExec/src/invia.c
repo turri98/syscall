@@ -23,7 +23,7 @@ int main (int argc, char *argv[]) {
     int msgKey = atoi(argv[1]);
 
     if(msgKey<=0){
-        printf(" pls put a msg grater than zero");
+        printf("\npls put a msg grater than zero");
         return 1;
     }
     // get the message queue identifier
@@ -56,7 +56,7 @@ int main (int argc, char *argv[]) {
             errExit("msgsnd failed");
     }
 
-    printf("Message successfully sent to the message_queue\n");
+    printf("Message successfully sent to the message_queue %s\n", argv[1]);
 
     return 0;
 }
