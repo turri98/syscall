@@ -10,6 +10,7 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include "errExit.h"
 #include "request.h"
