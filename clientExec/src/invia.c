@@ -1,7 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "message.h"
-#include "errExit.h"
 #include <sys/msg.h>
 #include <sys/stat.h>
 #include <string.h>
@@ -9,6 +7,9 @@
 #include <fcntl.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "message.h"
+#include "errExit.h"
 
 #define STR_SIZE(X) sizeof(char)*strlen(X)
 int main (int argc, char *argv[]) {

@@ -1,18 +1,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/sem.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "request.h"
 #include "response.h"
 #include "errExit.h"
 #include "constants.h"
 
-extern char *path2ServerFIFO;
+extern char *path2serverFIFO;
 extern char *baseClientFIFO;
 extern char *services[];
 
@@ -27,37 +27,35 @@ int main (int argc, char *argv[]) {
     scanf("%s", request.userID);
     printf("Per favore inserisci il nome del servizio che vuoi utilizzare:\n");
     scanf("%s",request.service);
-    //printf("codice identificativo: %s \n", );
 
-    //create the client fifo using the base baseFifoClient path and adding his pid
-    char pathFifoClient[100];
+    // create the client fifo path using the base baseFifoClient path and adding his pid
+    char path2clientFIFO[100];
     pid_t myPid = getpid();
     request.pid = myPid;
-    sprintf(pathFifoClient, "%s%d", baseFifoClient, myPid);
+    sprintf(path2clientFIFO, "%s%d", baseFifoClient, myPid);
 
     printf("<Client> making FIFO...\n");
 
-    // make a FIFO with the following permissions:
-    // user:  read, write
-    if (mkfifo(pathFifoClient, S_IRUSR | S_IWUSR) == -1)
+    // create the fifo in writing and reading mode
+    if (mkfifo(path2clientFIFO, S_IRUSR | S_IWUSR) == -1)
         errExit("mkfifo failed");
 
-    // Step-2: The client opens the server's FIFO to send a Request
-    int sd = open(pathFifoServer, O_WRONLY);
+    // opening the fifo for writing the response
+    int sd = open(path2serverFIFO, O_WRONLY);
     if (sd == -1)
         errExit("open failed");
 
-    // Step-3: The client sends a Request through the server's FIFO
+    // sending the request on the fifo
     if (write(sd, &request,sizeof(struct Request))
         != sizeof(struct Request))
         errExit("write failed");
 
-    // Step-4: The client opens its FIFO to get a Response
-    int cd = open(pathFifoClient, O_RDONLY);
+    // opening the fifo for reading only
+    int cd = open(path2clientFIFO, O_RDONLY);
     if (cd == -1)
         errExit("open failed");
 
-    // Step-5: The client reads a Response from the server
+    // reading the response from the fifo
     struct Response response;
 
     int bR = read(cd, &response, sizeof(struct Response));
@@ -65,7 +63,8 @@ int main (int argc, char *argv[]) {
         errExit("read failed");
     else if(bR != sizeof(struct Response))
         printf("Bad response\n");
-    else { // Step-6: The client prints the result on terminal
+    else {
+        // printing the result on the terminal
         if (response.key!=0) {
             printf("\n");
             printf("Key:\t%lu\n", response.key);
@@ -75,12 +74,12 @@ int main (int argc, char *argv[]) {
         }
     }
 
-    // Step-7: The client closes its FIFO
+    // closing the fifo
     if (close(cd) == -1)
         errExit("close failed");
 
-    // Step-8: The client removes its FIFO from the file system
-    if (unlink(pathFifoClient) != 0)
+    // removing the fifo
+    if (unlink(path2clientFIFO) != 0)
         errExit("unlink failed");
     return 0;
 }

@@ -13,6 +13,8 @@ struct Entry {
 // It returns the shmid on success, otherwise it terminates the calling process
 int alloc_shared_memory(key_t shmKey, size_t size);
 
+int alloc_shared_memory_excl(key_t shmKey, size_t size);
+
 // The get_shared_memory attaches a shared memory segment in the logic address space
 // of the calling process.
 // It returns a pointer to the attached shared memory segment,

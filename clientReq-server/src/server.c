@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <time.h>
+#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
-#include <time.h>
-#include <string.h>
+#include <sys/stat.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/types.h>
@@ -19,7 +18,7 @@
 #include "shared_memory.h"
 #include "constants.h"
 
-extern char *pathFifoServer;
+extern char *path2serverFIFO;
 extern char *baseFifoClient;
 extern char *services[];
 
@@ -29,14 +28,14 @@ unsigned long int keyStampa = 1;
 unsigned long int keySalva = MAX_SERVICE_1 + 1;
 unsigned long int keyInvia = MAX_SERVICE_2 + 1;
 
-int shmid, shmNum, *num; // *num contatore dei client = 0 /shmid  file system shared mem /shmNum numero di segmenti attaccati
-struct Entry *shm_entry;
-int semid;
+int shmid, shmNum, *num; // *num --> counter for the number of client = 0 /shmid --> file system shared mem /shmNum --> number of attached segments
+struct Entry *shm_entry; //point of attach for the shared memory segment for the keys
+int semid; //id of the semaphore set
 
 pid_t keyManager;
 pid_t server;
 
-void printSHM() {
+void printSHM() { //for debugging mode
     int i;
     for (i = 0; i < *num; i++) {
         printf("\n %d) userID: %s, key: %lu, timeStart: %d\n", i, shm_entry[i].userID, shm_entry[i].key,
@@ -46,13 +45,15 @@ void printSHM() {
 }
 
 void quit(int sig) {
+
     if (getpid() == server) {
+
         //send SIGTERM to keyManager
         printf("<Server> killing keyManager...\n");
         if (kill(keyManager, SIGTERM) == -1)
             errExit("kill failed");
 
-        // Close the FIFO
+        //closing the fifos
         printf("<Server> closing the fifo...\n");
         if (serverFIFO != 0 && close(serverFIFO) == -1)
             errExit("close failed");
@@ -61,36 +62,47 @@ void quit(int sig) {
         if (serverFIFO_extra != 0 && close(serverFIFO_extra) == -1)
             errExit("close failed");
 
-        // Remove the FIFO
+        //removing the fifo
         printf("<Server> unlinking the fifo...\n");
-        if (unlink(pathFifoServer) != 0)
+        if (unlink(path2serverFIFO) != 0)
             errExit("unlink failed");
 
+        //detaching the shared memories
         printf("<Server> detaching shm...\n");
         free_shared_memory(shm_entry);
+
         printf("<Server> detaching shmNum...\n");
         free_shared_memory(num);
+
+        //removing the shared memories
         printf("<Server> removing shm...\n");
         remove_shared_memory(shmid);
+
         printf("<Server> removing shmNum...\n");
         remove_shared_memory(shmNum);
 
+        //removing the semaphore set
         printf("<Server> removing sem...\n");
         if (semctl(semid, 0 /*ignored*/, IPC_RMID, NULL) == -1)
             errExit("semctl IPC_RMID failed");
 
         fflush(stdout);
+        //waiting for the keyManager process to finish it's execution
         while (wait(NULL) == -1);
+
         printf("<Server> turning off...\n");
         // terminate the process
         exit(0);
+
     } else {
+
         printf("<KeyManager> turning off...\n");
         exit(0);
+
     }
 }
 
-void strlwr(char s[]) {
+void strlwr(char s[]) { //string to lower case
     int c = 0;
 
     while (s[c] != '\0') {
@@ -131,23 +143,6 @@ void delEntry() {
     }
 }
 
-int create_sem_set(key_t semkey) {
-    // Create a semaphore set with 2 semaphores
-    int semid = semget(semkey, 2, IPC_CREAT | S_IRUSR | S_IWUSR);
-    if (semid == -1)
-        errExit("semget failed");
-
-    // Initialize the semaphore set
-    unsigned short values[] = {1, 1};
-    union semun arg;
-    arg.array = values;
-
-    if (semctl(semid, 0, SETALL, arg) == -1)
-        errExit("semctl SETALL failed");
-
-    return semid;
-}
-
 unsigned long int getKey(struct Request *request) {
 
     unsigned long int myKey = 0;
@@ -169,19 +164,19 @@ unsigned long int getKey(struct Request *request) {
             keyInvia = MAX_SERVICE_2 + 1;
         return keyInvia++;
     } else { // service error
-        return myKey; //in clientReq if the return value is 0, the service request wasn't successful
+        return myKey; //in clientReq, if the return value is 0, the service request isn't successful
     }
 }
 
 void sendResponse(struct Request *request) {
 
-    // make the path of client's FIFO
-    char pathFifoClient[100];
-    sprintf(pathFifoClient, "%s%d", baseFifoClient, request->pid);
+    // make the path of client's fifo
+    char path2clientFIFO[100];
+    sprintf(path2clientFIFO, "%s%d", baseFifoClient, request->pid);
 
-    printf("<Server> opening FIFO %s...\n", pathFifoClient);
-    // Open the client's FIFO in write-only mode
-    int clientFIFO = open(pathFifoClient, O_WRONLY);
+    printf("<Server> opening FIFO %s...\n", path2clientFIFO);
+    // open the client's FIFO in write-only mode
+    int clientFIFO = open(path2clientFIFO, O_WRONLY);
     if (clientFIFO == -1) {
         printf("<Server> open failed\n");
         return;
@@ -190,9 +185,6 @@ void sendResponse(struct Request *request) {
     // Prepare the response for the client
     struct Response response;
     struct Entry myEntry;
-
-    // write to sharedMemory if response.key!=0 (request->userID, response.key, time_t current)
-    //if (response.key!=0) {
 
     semOp(semid, SEM_SHM, -1);
 
@@ -218,18 +210,10 @@ void sendResponse(struct Request *request) {
 
     }
 
-
-    //DEBUG
-    //printf("## %s, %lu, %ld\n",myEntry.userID, myEntry.key, myEntry.timeStart);
-
-    //printf("<Server> printing current state of shared memory... \n\n");
-    //printSHM();
-
     semOp(semid, SEM_SHM, 1);
 
-
-    printf("<KeyManager> sending a response\n");
     // Write the Response into the opened FIFO
+    printf("<KeyManager> sending a response\n");
     if (write(clientFIFO, &response, sizeof(struct Response))
         != sizeof(struct Response)) {
         printf("<KeyManager> write failed");
@@ -250,33 +234,26 @@ int main(int argc, char *argv[]) {
     sigfillset(&mySetServer);
     // remove SIGTERM from mySet
     sigdelset(&mySetServer, SIGTERM);
-    //sigdelset(&mySetServer, SIGINT);
+    // sigdelset(&mySetServer, SIGINT); //for debugging, removes also the ctrl+c for blocking the program
     // blocking all signals but SIGTERM
     sigprocmask(SIG_SETMASK, &mySetServer, NULL);
+
+    // creating the directory for tmp files
+    //if (mkdir(tmp, 0777) == -1) { // 0777 = all permissions for everyone
+    //    errExit("mkdir failed");
+    //}
 
     // set the function sigHandler as handler for the signal SIGTERM
     if (signal(SIGTERM, quit) == SIG_ERR)
         errExit("change signal handler failed");
 
-    // set the function sigHandler as handler for the signal SIGINT
+    // set the function sigHandler as handler for the signal SIGINT DEBUG only
     //if (signal(SIGINT, quit) == SIG_ERR)
     //    errExit("change signal handler failed");
 
-    //printf("keyStampa: %lu \n", keyStampa);
-    //printf("keySalva: %lu \n", keySalva);
-    //printf("keyInvia: %lu \n", keyInvia);
-
-    //for (int k=1;k<MAX_SERVICE; k++) {
-    //    printf("keySalva: %lu \n", keySalva+=1400000);
-    //}
-
-
     // allocate a shared memory segment for the entries
     printf("<Server> allocating a shared memory segment...\n");
-    //shmid = alloc_shared_memory(SHARED_MEM_KEY, sizeof(struct Entry)*MAX_CLIENT);
-    shmid = shmget(SHARED_MEM_KEY, sizeof(struct Entry) * MAX_CLIENT, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
-    if (shmid == -1)
-        errExit("server shmget1 failed");
+    shmid = alloc_shared_memory_excl(SHARED_MEM_KEY, sizeof(struct Entry)*MAX_CLIENT);
 
     // attach the shared memory segment
     printf("<Server> attaching the shared memory segment...\n");
@@ -284,10 +261,7 @@ int main(int argc, char *argv[]) {
 
     // allocate a shared memory segment for the number of entries
     printf("<Server> allocating a shared memory segment...\n");
-    //shmNum = alloc_shared_memory(SHARED_NUM_KEY, sizeof(int)), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR;
-    shmNum = shmget(SHARED_NUM_KEY, sizeof(struct Entry) * MAX_CLIENT, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
-    if (shmid == -1)
-        errExit("server shmget2 failed");
+    shmNum = alloc_shared_memory_excl(SHARED_NUM_KEY, sizeof(int));
 
 
     // attach the shared memory segment
@@ -317,7 +291,6 @@ int main(int argc, char *argv[]) {
             delEntry();
             printf("##################################\n<keyManager> deleting entries at time %d...", (int) time(NULL));
             fflush(stdout);
-            //printf("\n\n<keyManager> printing shared memory\n");
             printSHM();
             printf("\n##################################\n\n");
             fflush(stdout);
@@ -336,21 +309,21 @@ int main(int argc, char *argv[]) {
     // user:  read, write
     // group: write
     // other: no permission
-    if (mkfifo(pathFifoServer, S_IRUSR | S_IWUSR | S_IWGRP) == -1)
+    if (mkfifo(path2serverFIFO, S_IRUSR | S_IWUSR | S_IWGRP) == -1)
         errExit("mkfifo failed");
 
-    printf("<Server> FIFO %s created!\n", pathFifoServer);
+    printf("<Server> FIFO %s created!\n", path2serverFIFO);
 
     // Wait for client in read-only mode. The open blocks the calling process
     // until another process opens the same FIFO in write-only mode
     printf("<Server> waiting for a client...\n");
-    serverFIFO = open(pathFifoServer, O_RDONLY);
+    serverFIFO = open(path2serverFIFO, O_RDONLY);
     if (serverFIFO == -1)
         errExit("open read-only failed");
 
     // Open an extra descriptor, so that the server does not see end-of-file
     // even if all clients closed the write end of the FIFO
-    serverFIFO_extra = open(pathFifoServer, O_WRONLY);
+    serverFIFO_extra = open(path2serverFIFO, O_WRONLY);
     if (serverFIFO_extra == -1)
         errExit("open write-only failed");
 

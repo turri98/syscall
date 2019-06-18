@@ -8,7 +8,6 @@
 #define MAX_CLIENT 1000
 
 #define SEM_SHM 0
-#define SEM_NUM 1
 
 #define TTL 300
 
@@ -18,7 +17,7 @@
 #define MAX_SERVICE_2 2800000000
 #define MAX_SERVICE_3 4200000000
 
-char *pathFifoServer = "tmp/fifoServer";
+char *path2serverFIFO = "tmp/fifoServer";
 char *baseFifoClient = "tmp/fifoClient.";
 char *services[] = {
         "stampa", "salva", "invia"

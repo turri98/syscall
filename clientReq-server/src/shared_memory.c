@@ -7,9 +7,18 @@
 #include "errExit.h"
 #include "shared_memory.h"
 
- int alloc_shared_memory(key_t shmKey, size_t size) {
+int alloc_shared_memory(key_t shmKey, size_t size) {
     // get, or create, a shared memory segment
     int shmid = shmget(shmKey, size, IPC_CREAT | S_IRUSR | S_IWUSR);
+    if (shmid == -1)
+        errExit("shmget failed");
+
+    return shmid;
+}
+
+int alloc_shared_memory_excl(key_t shmKey, size_t size) {
+    // get, or create, a shared memory segment
+    int shmid = shmget(shmKey, size, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
     if (shmid == -1)
         errExit("shmget failed");
 

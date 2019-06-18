@@ -14,4 +14,6 @@ union semunion {
  */
 void semOp (int semid, unsigned short sem_num, short sem_op);
 
+int create_sem_set(key_t semkey);
+
 #endif
