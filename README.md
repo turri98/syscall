@@ -35,10 +35,11 @@ make
 
 
 ## How to run
-    The terminal 1 is needed to control the correct execution of the entries, you don't need to write anything to it
-    The terminal 2 is where you ask for the client keys for all activities, you need to type --> ./clientReq
-        and then you write the name and the service you want
-    The terminal 3 is where you use the key terminal 2 gave you, you need to type --> ./clientExec user key some_arguments_depending_on_the_service
+* The terminal 1 is needed to control the correct execution of the entries, you don't need to write anything to it
+* The terminal 2 is where you ask for the client keys for all activities, you need to type 
+```./clientReq ``` and then you write the name and the service you want
+* The terminal 3 is where you use the key terminal 2 gave you, you need to type  
+``` ./clientExec user key some_arguments_depending_on_the_service ```
 
 Arguments for terminal 3
 * for STAMPA service: you can write anything, the service then will print out on the terminal your sentence
