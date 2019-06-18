@@ -16,22 +16,22 @@ Recommended way to build:
 terminal 1)
 
 ```
-    cd /clientReq-server
-    make
-    ```
+cd /clientReq-server
+make
+```
 
 terminal 2) 
 
 ```
-    cd /clientReq-server
-    ```
+cd /clientReq-server
+```
 
 terminal 3)
 
 ```
-    cd /clientExec
-    make
-    ```
+cd /clientExec
+make
+```
 
 
 ## How to run
