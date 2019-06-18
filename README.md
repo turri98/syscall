@@ -1,6 +1,7 @@
 # syscall
 Project of system call for Operating Systems for University of Verona
 
+
 ## How to build
 For building on macOS:
 - in semaphore.h in both directories clientExec and clientReq-server, the union must be called semunion
@@ -8,19 +9,26 @@ For building on macOS:
 For building on linux:
 - in semaphore.h in both directories clientExec and clientReq-server, the union must be called semun
 
+
 Recommended way to build:
     You need 3 terminals I suggest: 1 for the server, 1 for the clientReq and 1 for clientExec
-    terminal 1)
-    ```
+
+terminal 1)
+
+```
     cd /clientReq-server
     make
     ```
-    terminal 2) 
-    ```
+
+terminal 2) 
+
+```
     cd /clientReq-server
     ```
-    terminal 3)
-    ```
+
+terminal 3)
+
+```
     cd /clientExec
     make
     ```
